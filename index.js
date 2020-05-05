@@ -1,16 +1,24 @@
-var http = require('http')
 var net = require('net')
-var httpProxy = require('http-proxy')
-var HttpsProxyAgent = require('https-proxy-agent')
 
-var proxy = httpProxy.createProxyServer({})
+var server = net.createServer()
 
-var server = http.createServer()
-server.on('connection', () => {
+server.on('connection', (clientSocket) => {
   console.log('connection')
-})
-server.on('request', () => {
-  console.log('request')
+  // clientSocket.on('data', (data) => {
+  //   console.log(data.toString())
+  // })
+
+  clientSocket.on('connect', (data) => {
+    console.log('connect')
+  })
+
+  clientSocket.on('request', (data) => {
+    console.log('request')
+  })
+
+  clientSocket.on('end', () => {
+    console.log('client disconnected');
+  })
 })
 server.on('connect', (req, clientSocket, head) => {
   console.log(req.url)
@@ -21,7 +29,18 @@ server.on('connect', (req, clientSocket, head) => {
     serverSocket.write(head)
     serverSocket.pipe(clientSocket)
     clientSocket.pipe(serverSocket)
+
+    serverSocket.on('error', (err) => {
+      console.log('PROXY TO SERVER ERROR');
+      console.log(err);
+    });
+
+    clientSocket.on('error', err => {
+      console.log('CLIENT TO PROXY ERROR');
+      console.log(err);
+    });
   })
+
   console.log('connect')
 })
 server.on('error', (e) => {
@@ -37,18 +56,3 @@ server.on('clientError', (e) => {
 
 console.log('listening on port 5050')
 server.listen(5050)
-
-httpProxy
-  .createProxyServer({
-    target: {
-      protocol: 'https:',
-      host: 'www.google.com',
-      port: 443,
-      secure: false
-      // pfx: fs.readFileSync('path/to/certificate.p12'),
-      // passphrase: 'password',
-    },
-    changeOrigin: true
-    // secure: false
-  })
-  .listen(8000)
